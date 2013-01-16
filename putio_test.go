@@ -2,7 +2,6 @@ package putio
 
 import (
 	"encoding/json"
-	"fmt"
 	"io/ioutil"
 	"testing"
 )
@@ -12,9 +11,11 @@ type config struct {
 	Appsecret      string
 	Appcallbackurl string
 	Usercode       string
+	ExpectedToken  string
 }
 
 func TestPutio(t *testing.T) {
+	// Load Config from config.json
 	config := config{}
 	f, err := ioutil.ReadFile("config.json")
 	if err != nil {
@@ -24,9 +25,15 @@ func TestPutio(t *testing.T) {
 		t.Errorf("Error reading json from config : " + err.Error())
 	}
 
+	// create new putio object
 	p, _ := NewPutio(config.Appid, config.Appsecret, config.Appcallbackurl, config.Usercode)
-	exstr := "ABV9KDHN"
-	if p.OauthToken != exstr {
-		t.Errorf("OAuth token appears invalid.  Expected: %s got :%s", exstr, p.OauthToken)
+
+	if p.OauthToken == "" {
+		t.Error("OAuth token is empty")
+	}
+
+	expstr := config.ExpectedToken
+	if p.OauthToken != expstr {
+		t.Errorf("OAuth token appears invalid.  Expected: %s got :%s", expstr, p.OauthToken)
 	}
 }

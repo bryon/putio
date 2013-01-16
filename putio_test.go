@@ -1,18 +1,30 @@
 package putio
 
 import (
+	"encoding/json"
+	"fmt"
+	"io/ioutil"
 	"testing"
 )
 
-var (
-	putio_clientid    = "263"
-	putio_appsecret   = "7vtklth37axmtlpooaxf"
-	putio_callbackurl = "https://github.com/bryon/put.io.go"
-	user_code         = "cbb13b625b5511e29620001018321b64"
-)
+type config struct {
+	Appid          string
+	Appsecret      string
+	Appcallbackurl string
+	Usercode       string
+}
 
 func TestPutio(t *testing.T) {
-	p, _ := NewPutio(putio_clientid, putio_appsecret, putio_callbackurl, user_code)
+	config := config{}
+	f, err := ioutil.ReadFile("config.json")
+	if err != nil {
+		t.Errorf("Config file not read : %s", err.Error())
+	}
+	if err = json.Unmarshal(f, &config); err != nil {
+		t.Errorf("Error reading json from config : " + err.Error())
+	}
+
+	p, _ := NewPutio(config.Appid, config.Appsecret, config.Appcallbackurl, config.Usercode)
 	exstr := "ABV9KDHN"
 	if p.OauthToken != exstr {
 		t.Errorf("OAuth token appears invalid.  Expected: %s got :%s", exstr, p.OauthToken)

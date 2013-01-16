@@ -56,11 +56,12 @@ type Putio struct {
 	Friends
 }
 
+// NewPutio takes in the apps oauth information and gets the token that will be used for all other calls
+// This function doesn't have to be used if you provied the OauthToken when creating a Putio struct.
 func NewPutio(appid, appsecret, appredirect, usercode string) (*Putio, error) {
 	// get the user token using the calling apps credentials
-	//token := "ABV9KDHN"
 	url := "https://api.put.io/v2/oauth2/access_token?client_id=" + appid + "&client_secret=" + appsecret + "&grant_type=authorization_code&redirect_uri=" + appredirect + "&code=" + usercode
-
+	fmt.Println(url)
 	resp, err := http.Get(url)
 	if err != nil {
 		fmt.Println("Error calling oauth service : " + err.Error())
@@ -73,16 +74,14 @@ func NewPutio(appid, appsecret, appredirect, usercode string) (*Putio, error) {
 		fmt.Println("Error reading oauth response : " + err.Error())
 		return nil, err
 	}
-	//token := string(bodybytes)
 
-	// token returns as json like { "access_token": "ABV9KDHN" }
+	// token returns as json result like { "access_token": "ABV9KDHN" }
 	type oauthtoken struct {
 		Access_token string
 	}
 	token := oauthtoken{}
-	err = json.Unmarshal(bodybytes, &token)
-	if err != nil {
-		fmt.Println("Error reading json from oauth : " + err.Error())
+	if err = json.Unmarshal(bodybytes, &token); err != nil {
+		fmt.Println("Error reading json from oauth : " + err.Error() + " response:" + string(bodybytes))
 		return nil, err
 	}
 

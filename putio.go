@@ -76,21 +76,36 @@ type Putio struct {
 	OauthToken string
 }
 
-func (p *Putio) ListFiles() (files *Files, jsonstr string, err error) {
-	url := BaseUrl + "/files/list" + oauthparam + p.OauthToken
+func (p *Putio) GetReqBody(path string) (bodybytes []byte, err error) {
+	url := BaseUrl + path + oauthparam + p.OauthToken
 	resp, err := http.Get(url)
 	if err != nil {
-		return nil, "", err
+		return nil, err
 	}
 	// read in the body of the response
 	defer resp.Body.Close()
-	bodybytes, _ := ioutil.ReadAll(resp.Body)
+	bodybytes, err = ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return nil, err
+	}
+	return bodybytes, nil
+}
+
+// https://api.put.io/v2/docs/#files-list
+func (p *Putio) FilesList() (files *Files, jsonstr string, err error) {
+	bodybytes, err := p.GetReqBody("/files/list")
 	f := Files{}
 	err = json.Unmarshal(bodybytes, &f)
 	if err != nil {
 		return nil, string(bodybytes), err
 	}
 	return &f, string(bodybytes), nil
+}
+
+// https://api.put.io/v2/docs/#files-search
+func (p *Putio) FilesSearch(query string, pageno int) (files *Files, jsonstr string, err error) {
+	//url := BaseUrl + "/files/search/" + query + "/page/" + string(pageno) + " + oauthparam + p.OauthToken"
+	return nil, "", nil
 }
 
 // NewPutio takes in the apps oauth information and gets the token that will be used for all other calls

@@ -39,11 +39,11 @@ func TestPutio(t *testing.T) {
 	}
 
 	// now test the most basic function, listing your files
-	files, _, err := p.ListFiles()
+	files, jsonstr, err := p.FilesList()
 	if err != nil {
 		t.Error(err.Error())
 	}
-	//fmt.Println(jsonstr)
+	fmt.Println(jsonstr)
 	fmt.Println(files)
 	fmt.Println(files.Files)
 }

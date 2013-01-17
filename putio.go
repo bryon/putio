@@ -6,6 +6,35 @@ import (
 	"net/http"
 )
 
+// fix problems with json not handling null as a value
+type NString string
+type NInt int
+
+func (s *NString) UnmarshalJSON(b []byte) error {
+	if string(b) == "null" { // now THIS is dumb.
+		s = new(NString)
+		return nil
+	}
+	var tmp string
+	if err := json.Unmarshal(b, &tmp); err != nil {
+		return err
+	}
+	*s = NString(tmp)
+	return nil
+}
+func (i *NInt) UnmarshalJSON(b []byte) error {
+	if string(b) == "null" { // now THIS is dumb.
+		i = new(NInt)
+		return nil
+	}
+	var tmp int
+	if err := json.Unmarshal(b, &tmp); err != nil {
+		return err
+	}
+	*i = NInt(tmp)
+	return nil
+}
+
 const (
 	BaseUrl = "https://api.put.io/v2/"
 )
@@ -14,24 +43,24 @@ var oauthparam = "?oauth_token="
 var oathtoken string
 
 type File struct {
-	Is_shared          *bool
-	Name               *string
-	Screenshot         *string // returns url to image
-	Created_at         *string // in iso8601 format
-	Opensubtitles_hash *string
-	Parent_id          *int // parent folder id
-	Is_mp4_available   *bool
-	Content_type       *string
-	Crc32              *string
-	Icon               *string // returns url to screenshot image in icon size
-	Id                 *int
-	Size               *int64
+	Is_shared          bool    `json: "is_shared"`
+	Name               NString `json: "name"`
+	Screenshot         NString `json: "screenshot"` // returns url to image
+	Created_at         NString `json: "created_at"` // in iso8601 format
+	Opensubtitles_hash NString `json: "opensubtitles_hash"`
+	Parent_id          NInt    `json: "parent_id"` // parent folder id
+	Is_mp4_available   bool    `json: "is_mp4_available"`
+	Content_type       NString `json: "content_type"`
+	Crc32              NString `json: "crc32"`
+	Icon               NString `json: "icon"` // returns url to screenshot image in icon size
+	Id                 NInt    `json: "id"`
+	Size               int64   `json: "size"`
 }
 
 type Files struct {
-	Status string `json: "status"`
-	List   []File `json:"Files"`
-	Parent File   `json:"parent"`
+	Files  []File
+	Status string
+	Parent File
 }
 
 type Transfers struct {
@@ -41,7 +70,6 @@ type Account struct {
 }
 
 type Friends struct {
-	token int
 }
 
 type Putio struct {
@@ -57,12 +85,12 @@ func (p *Putio) ListFiles() (files *Files, jsonstr string, err error) {
 	// read in the body of the response
 	defer resp.Body.Close()
 	bodybytes, _ := ioutil.ReadAll(resp.Body)
-	err = json.Unmarshal(bodybytes, &files)
+	f := Files{}
+	err = json.Unmarshal(bodybytes, &f)
 	if err != nil {
 		return nil, string(bodybytes), err
 	}
-
-	return files, string(bodybytes), nil
+	return &f, string(bodybytes), nil
 }
 
 // NewPutio takes in the apps oauth information and gets the token that will be used for all other calls
@@ -90,6 +118,5 @@ func NewPutio(appid, appsecret, appredirect, usercode string) (*Putio, error) {
 	if err = json.Unmarshal(bodybytes, &token); err != nil {
 		return nil, err
 	}
-
 	return &Putio{OauthToken: token.Access_token}, nil
 }

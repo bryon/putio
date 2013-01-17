@@ -2,6 +2,7 @@ package putio
 
 import (
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"testing"
 )
@@ -36,4 +37,13 @@ func TestPutio(t *testing.T) {
 	if p.OauthToken != expstr {
 		t.Errorf("OAuth token appears invalid.  Expected: %s got :%s", expstr, p.OauthToken)
 	}
+
+	// now test the most basic function, listing your files
+	files, _, err := p.ListFiles()
+	if err != nil {
+		t.Error(err.Error())
+	}
+	//fmt.Println(jsonstr)
+	fmt.Println(files)
+	fmt.Println(files.Files)
 }

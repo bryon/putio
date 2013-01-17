@@ -2,6 +2,7 @@ package putio
 
 import (
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"net/http"
 )
@@ -61,6 +62,7 @@ type Files struct {
 	Files  []File
 	Status string
 	Parent File
+	Next   NString
 }
 
 type Transfers struct {
@@ -78,6 +80,7 @@ type Putio struct {
 
 func (p *Putio) GetReqBody(path string) (bodybytes []byte, err error) {
 	url := BaseUrl + path + oauthparam + p.OauthToken
+	fmt.Println(url)
 	resp, err := http.Get(url)
 	if err != nil {
 		return nil, err
@@ -93,19 +96,26 @@ func (p *Putio) GetReqBody(path string) (bodybytes []byte, err error) {
 
 // https://api.put.io/v2/docs/#files-list
 func (p *Putio) FilesList() (files *Files, jsonstr string, err error) {
-	bodybytes, err := p.GetReqBody("/files/list")
-	f := Files{}
-	err = json.Unmarshal(bodybytes, &f)
+	bodybytes, err := p.GetReqBody("files/list")
 	if err != nil {
 		return nil, string(bodybytes), err
 	}
-	return &f, string(bodybytes), nil
+	if err = json.Unmarshal(bodybytes, &files); err != nil {
+		return nil, string(bodybytes), err
+	}
+	return files, string(bodybytes), nil
 }
 
 // https://api.put.io/v2/docs/#files-search
-func (p *Putio) FilesSearch(query string, pageno int) (files *Files, jsonstr string, err error) {
-	//url := BaseUrl + "/files/search/" + query + "/page/" + string(pageno) + " + oauthparam + p.OauthToken"
-	return nil, "", nil
+func (p *Putio) FilesSearch(query string, pageno string) (files *Files, jsonstr string, err error) {
+	bodybytes, err := p.GetReqBody("files/search/" + query + "/page/" + string(pageno))
+	if err != nil {
+		return nil, string(bodybytes), err
+	}
+	if err = json.Unmarshal(bodybytes, &files); err != nil {
+		return nil, string(bodybytes), err
+	}
+	return files, string(bodybytes), nil
 }
 
 // NewPutio takes in the apps oauth information and gets the token that will be used for all other calls

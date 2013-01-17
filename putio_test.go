@@ -39,11 +39,22 @@ func TestPutio(t *testing.T) {
 	}
 
 	// now test the most basic function, listing your files
+	fmt.Println("FilesList Test..")
 	files, jsonstr, err := p.FilesList()
 	if err != nil {
 		t.Error(err.Error())
 	}
-	fmt.Println(jsonstr)
+	fmt.Printf("json len : %v\n", len(jsonstr))
 	fmt.Println(files)
 	fmt.Println(files.Files)
+
+	fmt.Println("FilesSearch Test..")
+	files, jsonstr, err = p.FilesSearch("Who", "-1")
+	if err != nil {
+		t.Error(err.Error())
+	}
+	//fmt.Printf("json len : %v\n", len(jsonstr))
+	fmt.Println(jsonstr)
+	fmt.Println(files)
+	fmt.Println(files.Next)
 }

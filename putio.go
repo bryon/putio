@@ -2,7 +2,6 @@ package putio
 
 import (
 	"encoding/json"
-	"fmt"
 	"io/ioutil"
 	"net/http"
 )
@@ -11,32 +10,28 @@ const (
 	BaseUrl = "https://api.put.io/v2/"
 )
 
-var Paths = map[string]string{
-	// values in {{ }} are variables.  Marked thusly for template use
-	"FilesList":         "/files/list",
-	"FilesSearch":       "/files/search/{{query}}/page/{{pageno}}",
-	"FilesUpload":       "/files/upload",
-	"FilesCreateFolder": "/files/create-folder",
-	"FilesId":           "/files/{{id}}",
-	"FilesDelete":       "/files/delete",
-	"FilesRename":       "/files/rename",
-	"FilesMove":         "/files/move",
-	"FilesMP4":          "/files/{{id}}/mp4",
-	"FilesDowload":      "/files/{{id}}/download",
-	"FilesZip":          "/files/zip",
-	"TransfersList":     "/transfers/list",
-	"TransfersAdd":      "/transfers/add",
-	"TransfersId":       "/transfers/{{id}}",
-	"TransfersCancel":   "/transfers/cancel",
-	"AccountInfo":       "/account/info",
-	"AccountSettings":   "/account/settings",
-	"FriendsList":       "/friends/list",
-	"FriendsWaiting":    "/friends/waiting-requests",
-	"FriendsRequest":    "/friends/{{username}}/request",
-	"FriendsDeny":       "/friends/{{username}}/deny",
+var oauthparam = "?oauth_token="
+var oathtoken string
+
+type File struct {
+	Is_shared          *bool
+	Name               *string
+	Screenshot         *string // returns url to image
+	Created_at         *string // in iso8601 format
+	Opensubtitles_hash *string
+	Parent_id          *int // parent folder id
+	Is_mp4_available   *bool
+	Content_type       *string
+	Crc32              *string
+	Icon               *string // returns url to screenshot image in icon size
+	Id                 *int
+	Size               *int64
 }
 
 type Files struct {
+	Status string `json: "status"`
+	List   []File `json:"Files"`
+	Parent File   `json:"parent"`
 }
 
 type Transfers struct {
@@ -46,14 +41,28 @@ type Account struct {
 }
 
 type Friends struct {
+	token int
 }
 
 type Putio struct {
 	OauthToken string
-	Files
-	Transfers
-	Account
-	Friends
+}
+
+func (p *Putio) ListFiles() (files *Files, jsonstr string, err error) {
+	url := BaseUrl + "/files/list" + oauthparam + p.OauthToken
+	resp, err := http.Get(url)
+	if err != nil {
+		return nil, "", err
+	}
+	// read in the body of the response
+	defer resp.Body.Close()
+	bodybytes, _ := ioutil.ReadAll(resp.Body)
+	err = json.Unmarshal(bodybytes, &files)
+	if err != nil {
+		return nil, string(bodybytes), err
+	}
+
+	return files, string(bodybytes), nil
 }
 
 // NewPutio takes in the apps oauth information and gets the token that will be used for all other calls
@@ -61,17 +70,15 @@ type Putio struct {
 func NewPutio(appid, appsecret, appredirect, usercode string) (*Putio, error) {
 	// get the user token using the calling apps credentials
 	url := "https://api.put.io/v2/oauth2/access_token?client_id=" + appid + "&client_secret=" + appsecret + "&grant_type=authorization_code&redirect_uri=" + appredirect + "&code=" + usercode
-	fmt.Println(url)
+	//fmt.Println(url)
 	resp, err := http.Get(url)
 	if err != nil {
-		fmt.Println("Error calling oauth service : " + err.Error())
 		return nil, err
 	}
 	// read in the body of the response
 	defer resp.Body.Close()
 	bodybytes, _ := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		fmt.Println("Error reading oauth response : " + err.Error())
 		return nil, err
 	}
 
@@ -81,7 +88,6 @@ func NewPutio(appid, appsecret, appredirect, usercode string) (*Putio, error) {
 	}
 	token := oauthtoken{}
 	if err = json.Unmarshal(bodybytes, &token); err != nil {
-		fmt.Println("Error reading json from oauth : " + err.Error() + " response:" + string(bodybytes))
 		return nil, err
 	}
 

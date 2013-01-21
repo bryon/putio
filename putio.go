@@ -43,6 +43,14 @@ const (
 var oauthparam = "?oauth_token="
 var oathtoken string
 
+type MP4 struct {
+	Status       NString
+	Stream_url   NString
+	Download_url NString
+	Size         int64
+	Percent_done NInt
+}
+
 type File struct {
 	Is_shared          bool    `json: "is_shared"`
 	Name               NString `json: "name"`
@@ -59,19 +67,83 @@ type File struct {
 }
 
 type Files struct {
-	Files  []File
+	Files  []File // for multi file results
+	File   File   // for single file result like files/id
+	Mp4    MP4    // for mp4 streaming results
 	Status string
 	Parent File
 	Next   NString
 }
 
+type Transfer struct {
+	Uploaded        int64   `json: "uploaded"`
+	EstimatedTime   NInt    `json: "estimated_time"`
+	PeersGetting    NInt    `json: "peers_getting_from_us"`
+	Extract         bool    `json: "extract"`
+	CurrentRatio    float64 `json: "current_ratio"`
+	Size            int64   `json: "size"`
+	UpSpeed         int64   `json: "up_speed"`
+	Id              NInt    `json: "id"`
+	Source          NString `json: "source"`
+	Subscription_id NInt    `json: "subscription_id"`
+	StatusMessage   NString `json: "status_message"`
+	Status          NString `json: "status"`
+	DownSpeed       NString `json: "down_speed"`
+	PeersConnected  NInt    `json: "peers_connected"`
+	Downloaded      int64   `json: "downloaded"`
+	FileId          NInt    `json: "file_id"`
+	PeersSending    NInt    `json: "peers_sending_to_us"`
+	PercentDone     NInt    `json: "percent_done"`
+	IsPrivate       bool    `json: "is_private"`
+	TrackerMessage  NString `json: "tracker_message"`
+	Name            NString `json: "name"`
+	CreatedAt       NString `json: "created_at"`
+	ErrorMessage    NString `json: "error_message"`
+	SaveParentId    NInt    `json: "save_parent_id"`
+	CallbackUrl     NString `json: "callback_url"`
+}
+
 type Transfers struct {
+	Status    string
+	Transfers []Transfer
+	Transfer  Transfer
+}
+
+type Disk struct {
+	Available int64
+	Used      int64
+	Size      int64
+}
+
+type UserInfo struct {
+	Username string
+	Mail     string
+	Disk     Disk
+}
+
+type Settings struct {
+	Routing               string `json: "routing"`
+	HideItemsShared       string `json: "hide_items_shared"`
+	DefaultDownloadFolder int    `json: "default_download_folder"`
+	SSLEnabled            bool   `json: "ssl_enabled"`
+	IsInvisible           bool   `json: "is_invisible"`
+	ExtractionDefault     string `json: "extraction_default"`
 }
 
 type Account struct {
+	Status   string
+	Info     UserInfo
+	Settings Settings
+}
+
+type Friend struct {
+	Name string
 }
 
 type Friends struct {
+	Status  string
+	Friends []Friend
+	Friend  Friend
 }
 
 type Putio struct {
@@ -80,8 +152,8 @@ type Putio struct {
 
 func (p *Putio) GetReqBody(path string) (bodybytes []byte, err error) {
 	url := BaseUrl + path + oauthparam + p.OauthToken
-	fmt.Println(url)
 	resp, err := http.Get(url)
+	fmt.Println(url)
 	if err != nil {
 		return nil, err
 	}
@@ -94,9 +166,8 @@ func (p *Putio) GetReqBody(path string) (bodybytes []byte, err error) {
 	return bodybytes, nil
 }
 
-// https://api.put.io/v2/docs/#files-list
-func (p *Putio) FilesList() (files *Files, jsonstr string, err error) {
-	bodybytes, err := p.GetReqBody("files/list")
+func (p *Putio) GetFilesReq(path string) (files *Files, jsonstr string, err error) {
+	bodybytes, err := p.GetReqBody(path)
 	if err != nil {
 		return nil, string(bodybytes), err
 	}
@@ -106,16 +177,100 @@ func (p *Putio) FilesList() (files *Files, jsonstr string, err error) {
 	return files, string(bodybytes), nil
 }
 
+// https://api.put.io/v2/docs/#files-list
+func (p *Putio) FilesList() (files *Files, jsonstr string, err error) {
+	return p.GetFilesReq("files/list")
+}
+
 // https://api.put.io/v2/docs/#files-search
 func (p *Putio) FilesSearch(query string, pageno string) (files *Files, jsonstr string, err error) {
-	bodybytes, err := p.GetReqBody("files/search/" + query + "/page/" + string(pageno))
+	return p.GetFilesReq("files/search/" + query + "/page/" + string(pageno))
+}
+
+// https://api.put.io/v2/docs/#files-id
+func (p *Putio) FilesId(id string) (files *Files, jsonstr string, err error) {
+	return p.GetFilesReq("files/" + id)
+}
+
+// https://api.put.io/v2/docs/#files-mp4-post
+func (p *Putio) FilesMP4(id string) (files *Files, jsonstr string, err error) {
+	return p.GetFilesReq("files/" + id + "/mp4")
+}
+
+// https://api.put.io/v2/docs/#files-id-download
+// in this case we will just return the url to download from and leave it up to 
+// the client to actually download it. It's a redirect so can't use the usual request method
+func (p *Putio) FilesDownload(id string) (urlstr string, err error) {
+	path := "download"
+
+	url := BaseUrl + "files/" + id + "/" + path + oauthparam + p.OauthToken
+	resp, err := http.Get(url)
+	if err != nil {
+		return "", err
+	}
+	finalURL := resp.Request.URL.String()
+	return finalURL, nil
+}
+
+func (p *Putio) GetTransfersReq(path string) (transfers *Transfers, jsonstr string, err error) {
+	bodybytes, err := p.GetReqBody(path)
 	if err != nil {
 		return nil, string(bodybytes), err
 	}
-	if err = json.Unmarshal(bodybytes, &files); err != nil {
+	if err = json.Unmarshal(bodybytes, &transfers); err != nil {
 		return nil, string(bodybytes), err
 	}
-	return files, string(bodybytes), nil
+	return transfers, string(bodybytes), nil
+}
+
+// https://api.put.io/v2/docs/#transfers-list
+func (p *Putio) TransfersList() (transfers *Transfers, jsonstr string, err error) {
+	return p.GetTransfersReq("transfers/list")
+}
+
+// https://api.put.io/v2/docs/#transfers-id
+func (p *Putio) TransfersId(id string) (transfers *Transfers, jsonstr string, err error) {
+	return p.GetTransfersReq("transfers/" + id)
+}
+
+func (p *Putio) GetAccountReq(path string) (account *Account, jsonstr string, err error) {
+	bodybytes, err := p.GetReqBody(path)
+	if err != nil {
+		return nil, string(bodybytes), err
+	}
+	if err = json.Unmarshal(bodybytes, &account); err != nil {
+		return nil, string(bodybytes), err
+	}
+	return account, string(bodybytes), nil
+}
+
+// https://api.put.io/v2/docs/#account-info
+func (p *Putio) AccountInfo() (account *Account, jsonstr string, err error) {
+	return p.GetAccountReq("account/info")
+}
+
+// https://api.put.io/v2/docs/#account-settings
+func (p *Putio) AccountSettings() (account *Account, jsonstr string, err error) {
+	return p.GetAccountReq("account/settings")
+}
+
+func (p *Putio) GetFriendReq(path string) (friends *Friends, jsonstr string, err error) {
+	bodybytes, err := p.GetReqBody(path)
+	if err != nil {
+		return nil, string(bodybytes), err
+	}
+	if err = json.Unmarshal(bodybytes, &friends); err != nil {
+		return nil, string(bodybytes), err
+	}
+	return friends, string(bodybytes), nil
+}
+
+func (p *Putio) FriendsList() (friends *Friends, jsonstr string, err error) {
+	return p.GetFriendReq("/friends/list")
+}
+
+func (p *Putio) FriendsWaiting() (friends *Friends, jsonstr string, err error) {
+	return p.GetFriendReq("/friends/waiting-requests")
 }
 
 // NewPutio takes in the apps oauth information and gets the token that will be used for all other calls

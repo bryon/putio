@@ -2,9 +2,9 @@ package putio
 
 import (
 	"encoding/json"
-	"fmt"
 	"io/ioutil"
 	"net/http"
+	"net/url"
 )
 
 // fix problems with json not handling null as a value
@@ -153,7 +153,6 @@ type Putio struct {
 func (p *Putio) GetReqBody(path string) (bodybytes []byte, err error) {
 	url := BaseUrl + path + oauthparam + p.OauthToken
 	resp, err := http.Get(url)
-	fmt.Println(url)
 	if err != nil {
 		return nil, err
 	}
@@ -164,6 +163,24 @@ func (p *Putio) GetReqBody(path string) (bodybytes []byte, err error) {
 		return nil, err
 	}
 	return bodybytes, nil
+}
+
+func (p *Putio) PostFilesReq(path string, data url.Values) (files *Files, jsonstr string, err error) {
+	url := BaseUrl + path + oauthparam + p.OauthToken
+	resp, err := http.PostForm(url, data)
+	if err != nil {
+		return nil, "", err
+	}
+	// read in the body of the response
+	defer resp.Body.Close()
+	bodybytes, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return nil, "", err
+	}
+	if err = json.Unmarshal(bodybytes, &files); err != nil {
+		return nil, string(bodybytes), err
+	}
+	return files, string(bodybytes), nil
 }
 
 func (p *Putio) GetFilesReq(path string) (files *Files, jsonstr string, err error) {
@@ -187,9 +204,31 @@ func (p *Putio) FilesSearch(query string, pageno string) (files *Files, jsonstr 
 	return p.GetFilesReq("files/search/" + query + "/page/" + string(pageno))
 }
 
+// https://api.put.io/v2/docs/#files-create-folder
+func (p *Putio) FilesCreateFolder(name string, parent_id int) (files *Files, jsonstr string, err error) {
+	data := make(url.Values)
+	data.Set("name", name)
+	data.Set("parent_id", string(parent_id))
+	return p.PostFilesReq("/files/create-folder", data)
+}
+
 // https://api.put.io/v2/docs/#files-id
 func (p *Putio) FilesId(id string) (files *Files, jsonstr string, err error) {
 	return p.GetFilesReq("files/" + id)
+}
+
+// https://api.put.io/v2/docs/#files-delete
+func (p *Putio) FilesDelete(file_id int) (files *Files, jsonstr string, err error) {
+	data := make(url.Values)
+	data.Set("file_ids", string(file_id))
+	return p.PostFilesReq("/files/delete", data)
+}
+
+func (p *Putio) FilesRename(file_id int, name string) (files *Files, jsonstr string, err error) {
+	data := make(url.Values)
+	data.Set("file_id", string(file_id))
+	data.Set("name", name)
+	return p.PostFilesReq("/files/rename", data)
 }
 
 // https://api.put.io/v2/docs/#files-mp4-post
@@ -265,10 +304,12 @@ func (p *Putio) GetFriendReq(path string) (friends *Friends, jsonstr string, err
 	return friends, string(bodybytes), nil
 }
 
+// https://api.put.io/v2/docs/#friends-list
 func (p *Putio) FriendsList() (friends *Friends, jsonstr string, err error) {
 	return p.GetFriendReq("/friends/list")
 }
 
+// https://api.put.io/v2/docs/#friends-waiting-requests
 func (p *Putio) FriendsWaiting() (friends *Friends, jsonstr string, err error) {
 	return p.GetFriendReq("/friends/waiting-requests")
 }

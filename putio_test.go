@@ -138,4 +138,33 @@ func TestPutio(t *testing.T) {
 	}
 	fmt.Printf("json len : %v\n", len(jsonstr))
 	fmt.Println(friends)
+
+	//_________________________________________________
+	fmt.Println("\nFiles Create Folder Test..")
+	files, jsonstr, err = p.FilesCreateFolder("apitest", 0)
+	if err != nil {
+		t.Error(err.Error())
+	}
+	//fmt.Printf("json len : %v\n", len(jsonstr))
+	fmt.Println(jsonstr)
+	fmt.Println(files)
+
+	folderid := int(files.File.Id)
+	// rename it
+	files, jsonstr, err = p.FilesRename(folderid, "ApiRenamed")
+	if err != nil {
+		t.Error(err.Error())
+	}
+	fmt.Println(jsonstr)
+	fmt.Println(files)
+
+	// now delte it
+	files, jsonstr, err = p.FilesDelete(folderid)
+	if err != nil {
+		t.Error(err.Error())
+	}
+	//fmt.Printf("json len : %v\n", len(jsonstr))
+	fmt.Println(jsonstr)
+	fmt.Println(files)
+
 }

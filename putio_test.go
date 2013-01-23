@@ -63,7 +63,7 @@ func TestPutio(t *testing.T) {
 
 	//_________________________________________________
 	fmt.Println("\nFilesId Test..")
-	files, jsonstr, err = p.FilesId("55113191")
+	files, jsonstr, err = p.FilesId(55113191)
 	if err != nil {
 		t.Error(err.Error())
 	}
@@ -73,7 +73,7 @@ func TestPutio(t *testing.T) {
 
 	//_________________________________________________
 	fmt.Println("\nFilesMP4 Test..")
-	files, jsonstr, err = p.FilesMP4("55113191")
+	files, jsonstr, err = p.FilesMP4(55113191)
 	if err != nil {
 		t.Error(err.Error())
 	}
@@ -83,7 +83,7 @@ func TestPutio(t *testing.T) {
 
 	//_________________________________________________
 	fmt.Println("\nFilesDownload Test..")
-	urlstr, err := p.FilesDownload("40704262")
+	urlstr, err := p.FilesDownload(40704262)
 	if err != nil {
 		t.Error(err.Error())
 	}
@@ -101,7 +101,7 @@ func TestPutio(t *testing.T) {
 
 	//_________________________________________________
 	fmt.Println("\nTransfersId Test..")
-	transfers, jsonstr, err = p.TransfersId("4485593")
+	transfers, jsonstr, err = p.TransfersId(4485593)
 	if err != nil {
 		t.Error(err.Error())
 	}
@@ -149,9 +149,9 @@ func TestPutio(t *testing.T) {
 	fmt.Println(jsonstr)
 	fmt.Println(files)
 
-	folderid := int(files.File.Id)
+	id := files.File.Id
 	// rename it
-	files, jsonstr, err = p.FilesRename(folderid, "ApiRenamed")
+	files, jsonstr, err = p.FilesRename(id, "ApiRenamed")
 	if err != nil {
 		t.Error(err.Error())
 	}
@@ -159,12 +159,11 @@ func TestPutio(t *testing.T) {
 	fmt.Println(files)
 
 	// now delte it
-	files, jsonstr, err = p.FilesDelete(folderid)
+	files, jsonstr, err = p.FilesDelete(id)
 	if err != nil {
 		t.Error(err.Error())
 	}
 	//fmt.Printf("json len : %v\n", len(jsonstr))
 	fmt.Println(jsonstr)
 	fmt.Println(files)
-
 }

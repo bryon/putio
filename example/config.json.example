@@ -1,0 +1,7 @@
+{
+	"_comment" : "register your app at // https://put.io/v2/oauth2/register to retrevie your values",
+	"appid": "YOUR_CLIENT_ID",
+	"appsecret":"YOUR_CLIENT_SECRET",
+	"appcallbackurl":"YOUR_REGISTERED_REDIRECT_URI",
+	"usercode": "returned_code",
+}

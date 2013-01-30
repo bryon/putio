@@ -3,10 +3,8 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/bryon/putio"
 	"io/ioutil"
-	//"net/http"
-	//"net/url"
-	"putio"
 )
 
 type config struct {
@@ -61,7 +59,7 @@ func main() {
 	fmt.Println(s)
 
 	// list all your files
-	files, jsonstr, err := p.FilesList()	
+	files, jsonstr, err := p.FilesList()
 	fmt.Printf("json len : %v\n", len(jsonstr))
 	//fmt.Println(jsonstr)
 	fmt.Println(files)
